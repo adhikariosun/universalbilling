@@ -9,7 +9,6 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertCircle,
-  Download,
   X,
   Printer,
 } from 'lucide-react';
@@ -259,11 +258,11 @@ export function BillsPage() {
                               <Eye size={16} />
                             </button>
                             <button
-                              onClick={() => exportBillPDF(bill)}
+                              onClick={() => printBill(bill)}
                               className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
-                              title="Export PDF"
+                              title="Print"
                             >
-                              <Download size={16} />
+                              <Printer size={16} />
                             </button>
                             <button
                               onClick={() => setDeleteTarget(bill)}

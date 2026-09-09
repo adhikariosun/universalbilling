@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Receipt, LayoutDashboard, FilePlus, FileText, Users, Package, Settings, LogOut } from 'lucide-react';
+import { Receipt, LayoutDashboard, FilePlus, FileText, Users, Package, Settings, LogOut, FileSpreadsheet } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useSettings } from '@/lib/settings';
 
@@ -9,6 +9,7 @@ const navItems = [
   { to: '/bills', label: 'Bills', icon: FileText },
   { to: '/customers', label: 'Customers', icon: Users },
   { to: '/products', label: 'Products', icon: Package },
+  { to: '/tax-export', label: 'Tax Export', icon: FileSpreadsheet },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
 

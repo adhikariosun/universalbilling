@@ -145,6 +145,27 @@ export async function deleteBill(id: string): Promise<void> {
 }
 
 // ============================================================
+// TAX EXPORT API
+// ============================================================
+
+export async function fetchAllBillsForExport(
+  startDate?: string,
+  endDate?: string
+): Promise<Bill[]> {
+  let query = supabase
+    .from('bills')
+    .select('*, customer:customers(*), bill_items(*)')
+    .order('bill_date', { ascending: true });
+
+  if (startDate) query = query.gte('bill_date', startDate);
+  if (endDate) query = query.lte('bill_date', endDate);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data ?? [];
+}
+
+// ============================================================
 // DASHBOARD API
 // ============================================================
 

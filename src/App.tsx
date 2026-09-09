@@ -8,6 +8,7 @@ import { BillsPage } from '@/pages/BillsPage';
 import { CustomersPage } from '@/pages/CustomersPage';
 import { ProductsPage } from '@/pages/ProductsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { TaxExportPage } from '@/pages/TaxExportPage';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 
 function ProtectedRoutes() {
@@ -26,6 +27,7 @@ function ProtectedRoutes() {
         <Route path="/customers" element={<CustomersPage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/tax-export" element={<TaxExportPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </SettingsProvider>
