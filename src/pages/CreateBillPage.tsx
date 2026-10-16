@@ -89,6 +89,15 @@ export function CreateBillPage() {
   const paid = paidAmount === '' ? 0 : Math.min(paidAmount, total);
   const dueAmount = Math.max(0, total - paid);
 
+  // Auto-fill paid amount based on status
+  useEffect(() => {
+    if (status === 'paid') {
+      setPaidAmount(total);
+    } else if (status === 'cancelled') {
+      setPaidAmount(0);
+    }
+  }, [status, total]);
+
   const updateItem = (id: string, field: keyof LineItem, value: string | number) => {
     setItems((prev) =>
       prev.map((item) =>
