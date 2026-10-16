@@ -97,6 +97,8 @@ export async function createBill(
     tax_amount: number;
     discount: number;
     total: number;
+    paid_amount: number;
+    due_amount: number;
     notes: string | null;
     status: string;
     bill_date: string;
@@ -142,6 +144,33 @@ export async function updateBill(
 export async function deleteBill(id: string): Promise<void> {
   const { error } = await supabase.from('bills').delete().eq('id', id);
   if (error) throw error;
+}
+
+export async function recordPayment(id: string, amount: number): Promise<Bill> {
+  const { data: bill, error: fetchError } = await supabase
+    .from('bills')
+    .select('paid_amount, due_amount, total, status')
+    .eq('id', id)
+    .single();
+  if (fetchError) throw fetchError;
+  if (!bill) throw new Error('Bill not found');
+
+  const newPaid = Number(bill.paid_amount) + amount;
+  const newDue = Number(bill.total) - newPaid;
+  const newStatus = newDue <= 0 ? 'paid' : 'pending';
+
+  const { data, error } = await supabase
+    .from('bills')
+    .update({
+      paid_amount: Math.max(0, newPaid),
+      due_amount: Math.max(0, newDue),
+      status: newStatus,
+    })
+    .eq('id', id)
+    .select('*, customer:customers(*)')
+    .single();
+  if (error) throw error;
+  return data;
 }
 
 // ============================================================
@@ -235,7 +264,7 @@ export async function createProduct(
 
 export async function updateProduct(
   id: string,
-  updates: Partial<Pick<Product, 'name' | 'description' | 'price' | 'unit'>>
+  updates: Partial<Pick<Product, 'name' | 'description' | 'price' | 'cost_price' | 'unit'>>
 ): Promise<Product> {
   const { data, error } = await supabase
     .from('products')

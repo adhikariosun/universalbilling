@@ -11,6 +11,7 @@ import {
   AlertCircle,
   X,
   Printer,
+  DollarSign,
 } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@/components/ui/Button';
@@ -20,7 +21,7 @@ import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Spinner, InlineSpinner } from '@/components/ui/Spinner';
 import { Modal } from '@/components/ui/Modal';
-import { fetchBills, searchBills, deleteBill, fetchBillById } from '@/lib/api';
+import { fetchBills, searchBills, deleteBill, fetchBillById, recordPayment } from '@/lib/api';
 import { useSettings } from '@/lib/settings';
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { Bill } from '@/lib/types';
@@ -42,6 +43,9 @@ export function BillsPage() {
   const [deleting, setDeleting] = useState(false);
   const [viewBill, setViewBill] = useState<Bill | null>(null);
   const [viewLoading, setViewLoading] = useState(false);
+  const [paymentBill, setPaymentBill] = useState<Bill | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState<number>(0);
+  const [recordingPayment, setRecordingPayment] = useState(false);
 
   const loadBills = useCallback(async () => {
     setLoading(true);
@@ -172,6 +176,26 @@ export function BillsPage() {
     setTimeout(() => win.print(), 250);
   };
 
+  const openPaymentModal = (bill: Bill) => {
+    setPaymentBill(bill);
+    setPaymentAmount(Number(bill.due_amount) > 0 ? Number(bill.due_amount) : 0);
+  };
+
+  const confirmPayment = async () => {
+    if (!paymentBill || paymentAmount <= 0) return;
+    setRecordingPayment(true);
+    try {
+      await recordPayment(paymentBill.id, paymentAmount);
+      setPaymentBill(null);
+      await loadBills();
+    } catch (err) {
+      setError('Failed to record payment');
+      console.error('Payment error:', err);
+    } finally {
+      setRecordingPayment(false);
+    }
+  };
+
   const totalPages = Math.ceil(count / PAGE_SIZE);
 
   return (
@@ -231,6 +255,7 @@ export function BillsPage() {
                       <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Date</th>
                       <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
                       <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Total</th>
+                      <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 hidden md:table-cell">Due</th>
                       <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Actions</th>
                     </tr>
                   </thead>
@@ -248,6 +273,13 @@ export function BillsPage() {
                         <td className="px-5 py-3.5 text-right text-sm font-semibold text-gray-900">
                           {formatCurrency(bill.total, currency)}
                         </td>
+                        <td className="px-5 py-3.5 text-right text-sm hidden md:table-cell">
+                          {Number(bill.due_amount) > 0 ? (
+                            <span className="font-medium text-amber-600">{formatCurrency(bill.due_amount, currency)}</span>
+                          ) : (
+                            <span className="text-green-600">Paid</span>
+                          )}
+                        </td>
                         <td className="px-5 py-3.5">
                           <div className="flex items-center justify-end gap-1">
                             <button
@@ -264,6 +296,15 @@ export function BillsPage() {
                             >
                               <Printer size={16} />
                             </button>
+                            {Number(bill.due_amount) > 0 && (
+                              <button
+                                onClick={() => openPaymentModal(bill)}
+                                className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-green-50 hover:text-green-600"
+                                title="Record Payment"
+                              >
+                                <DollarSign size={16} />
+                              </button>
+                            )}
                             <button
                               onClick={() => setDeleteTarget(bill)}
                               className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500"
@@ -396,6 +437,14 @@ export function BillsPage() {
               <div className="flex justify-between border-t border-gray-100 pt-2 text-base font-bold text-gray-900">
                 <span>Total</span><span>{formatCurrency(viewBill.total, currency)}</span>
               </div>
+              <div className="flex justify-between text-green-600 pt-1.5">
+                <span>Paid</span><span>{formatCurrency(viewBill.paid_amount ?? 0, currency)}</span>
+              </div>
+              {Number(viewBill.due_amount) > 0 && (
+                <div className="flex justify-between font-semibold text-amber-600">
+                  <span>Due</span><span>{formatCurrency(viewBill.due_amount, currency)}</span>
+                </div>
+              )}
             </div>
 
             {viewBill.notes && (
@@ -415,6 +464,54 @@ export function BillsPage() {
             </div>
           </div>
         ) : null}
+      </Modal>
+
+      {/* Record Payment modal */}
+      <Modal
+        open={!!paymentBill}
+        onClose={() => setPaymentBill(null)}
+        title="Record Payment"
+        size="sm"
+      >
+        {paymentBill && (
+          <div>
+            <div className="mb-4 space-y-1.5 rounded-lg bg-gray-50 p-3 text-sm">
+              <div className="flex justify-between text-gray-600">
+                <span>Bill</span><span className="font-medium">{paymentBill.bill_number}</span>
+              </div>
+              <div className="flex justify-between text-gray-600">
+                <span>Total</span><span className="font-medium">{formatCurrency(paymentBill.total, currency)}</span>
+              </div>
+              <div className="flex justify-between text-green-600">
+                <span>Already Paid</span><span className="font-medium">{formatCurrency(paymentBill.paid_amount ?? 0, currency)}</span>
+              </div>
+              <div className="flex justify-between text-amber-600 font-semibold">
+                <span>Remaining Due</span><span>{formatCurrency(paymentBill.due_amount ?? 0, currency)}</span>
+              </div>
+            </div>
+            <Input
+              label={`Payment Amount (${currency})`}
+              type="number"
+              min={0}
+              max={Number(paymentBill.due_amount)}
+              step="0.01"
+              value={paymentAmount}
+              onChange={(e) => setPaymentAmount(Number(e.target.value))}
+            />
+            {paymentAmount > Number(paymentBill.due_amount) && (
+              <p className="mt-1.5 text-xs text-amber-600">
+                Amount exceeds due balance. Only the due amount will be recorded.
+              </p>
+            )}
+            <div className="mt-5 flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setPaymentBill(null)}>Cancel</Button>
+              <Button onClick={confirmPayment} disabled={recordingPayment || paymentAmount <= 0}>
+                {recordingPayment ? <Spinner size={16} className="text-white" /> : <DollarSign size={16} />}
+                Record Payment
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </AppLayout>
   );

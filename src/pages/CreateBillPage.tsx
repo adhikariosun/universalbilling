@@ -39,6 +39,7 @@ export function CreateBillPage() {
   ]);
   const [taxRate, setTaxRate] = useState(settings?.tax_rate ?? 0);
   const [discount, setDiscount] = useState(0);
+  const [paidAmount, setPaidAmount] = useState<number | ''>('');
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState('paid');
   const [billDate, setBillDate] = useState(new Date().toISOString().split('T')[0]);
@@ -85,6 +86,8 @@ export function CreateBillPage() {
   const subtotal = items.reduce((sum, item) => sum + item.quantity * item.price, 0);
   const taxAmount = (subtotal * taxRate) / 100;
   const total = Math.max(0, subtotal + taxAmount - discount);
+  const paid = paidAmount === '' ? 0 : Math.min(paidAmount, total);
+  const dueAmount = Math.max(0, total - paid);
 
   const updateItem = (id: string, field: keyof LineItem, value: string | number) => {
     setItems((prev) =>
@@ -168,8 +171,10 @@ export function CreateBillPage() {
           tax_amount: taxAmount,
           discount,
           total,
+          paid_amount: paid,
+          due_amount: dueAmount,
           notes: notes.trim() || null,
-          status,
+          status: dueAmount > 0 && status === 'paid' ? 'pending' : status,
           bill_date: billDate,
         },
         validItems.map((i) => ({
@@ -538,6 +543,20 @@ export function CreateBillPage() {
               />
             </div>
             <div className="mt-4">
+              <Input
+                label={`Amount Paid (${currency})`}
+                type="number"
+                min={0}
+                step="0.01"
+                value={paidAmount}
+                onChange={(e) => setPaidAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                placeholder="0 for unpaid"
+              />
+              <p className="mt-1.5 text-xs text-gray-400">
+                Enter partial amount if customer hasn't paid in full. Leave empty for fully unpaid.
+              </p>
+            </div>
+            <div className="mt-4">
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Notes</label>
               <textarea
                 value={notes}
@@ -568,6 +587,20 @@ export function CreateBillPage() {
                 <span>Total</span>
                 <span>{formatCurrency(total, currency)}</span>
               </div>
+              {paid > 0 && (
+                <>
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Paid</span>
+                    <span className="font-medium">{formatCurrency(paid, currency)}</span>
+                  </div>
+                  {dueAmount > 0 && (
+                    <div className="flex justify-between text-sm font-semibold text-amber-600">
+                      <span>Due</span>
+                      <span>{formatCurrency(dueAmount, currency)}</span>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </Card>
 

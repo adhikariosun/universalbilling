@@ -19,6 +19,8 @@ export interface Bill {
   tax_amount: number;
   discount: number;
   total: number;
+  paid_amount: number;
+  due_amount: number;
   notes: string | null;
   status: 'paid' | 'pending' | 'cancelled';
   bill_date: string;
@@ -54,6 +56,7 @@ export interface Product {
   name: string;
   description: string | null;
   price: number;
+  cost_price: number;
   unit: string;
   created_at: string;
 }

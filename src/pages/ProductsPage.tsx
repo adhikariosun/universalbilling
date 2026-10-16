@@ -27,7 +27,7 @@ export function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
-  const [form, setForm] = useState({ name: '', description: '', price: 0, unit: 'pcs' });
+  const [form, setForm] = useState({ name: '', description: '', price: 0, cost_price: 0, unit: 'pcs' });
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
@@ -55,7 +55,7 @@ export function ProductsPage() {
 
   const openAddModal = () => {
     setEditing(null);
-    setForm({ name: '', description: '', price: 0, unit: 'pcs' });
+    setForm({ name: '', description: '', price: 0, cost_price: 0, unit: 'pcs' });
     setFormError(null);
     setModalOpen(true);
   };
@@ -66,6 +66,7 @@ export function ProductsPage() {
       name: product.name,
       description: product.description ?? '',
       price: product.price,
+      cost_price: product.cost_price ?? 0,
       unit: product.unit,
     });
     setFormError(null);
@@ -88,6 +89,7 @@ export function ProductsPage() {
           name: form.name.trim(),
           description: form.description.trim() || null,
           price: form.price,
+          cost_price: form.cost_price,
           unit: form.unit.trim() || 'pcs',
         });
       } else {
@@ -95,6 +97,7 @@ export function ProductsPage() {
           name: form.name.trim(),
           description: form.description.trim() || null,
           price: form.price,
+          cost_price: form.cost_price,
           unit: form.unit.trim() || 'pcs',
         });
       }
@@ -165,7 +168,9 @@ export function ProductsPage() {
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Name</th>
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 hidden sm:table-cell">Description</th>
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Unit</th>
+                    <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Cost</th>
                     <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Price</th>
+                    <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 hidden sm:table-cell">Margin</th>
                     <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Actions</th>
                   </tr>
                 </thead>
@@ -184,8 +189,18 @@ export function ProductsPage() {
                         {product.description ?? '—'}
                       </td>
                       <td className="px-5 py-3.5 text-sm text-gray-600">{product.unit}</td>
+                      <td className="px-5 py-3.5 text-right text-sm text-gray-600">{formatCurrency(product.cost_price ?? 0, currency)}</td>
                       <td className="px-5 py-3.5 text-right text-sm font-semibold text-gray-900">
                         {formatCurrency(product.price, currency)}
+                      </td>
+                      <td className="px-5 py-3.5 text-right text-sm hidden sm:table-cell">
+                        {product.price > 0 ? (
+                          <span className={`font-medium ${product.price > (product.cost_price ?? 0) ? 'text-green-600' : 'text-red-500'}`}>
+                            {(((product.price - (product.cost_price ?? 0)) / product.price) * 100).toFixed(1)}%
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center justify-end gap-1">
@@ -243,9 +258,17 @@ export function ProductsPage() {
               className="w-full resize-none rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <Input
-              label="Price"
+              label="Cost Price"
+              type="number"
+              min={0}
+              step="0.01"
+              value={form.cost_price}
+              onChange={(e) => setForm({ ...form, cost_price: Number(e.target.value) })}
+            />
+            <Input
+              label="Selling Price"
               type="number"
               min={0}
               step="0.01"
@@ -254,11 +277,23 @@ export function ProductsPage() {
             />
             <Input
               label="Unit"
-              placeholder="pcs, kg, liter..."
+              placeholder="pcs, kg..."
               value={form.unit}
               onChange={(e) => setForm({ ...form, unit: e.target.value })}
             />
           </div>
+          {form.price > 0 && (
+            <div className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm">
+              <span className="text-gray-500">Profit per unit:</span>
+              <span className="font-semibold text-gray-900">
+                {formatCurrency(form.price - form.cost_price, currency)}
+              </span>
+              <span className="text-gray-400">·</span>
+              <span className="font-medium text-blue-600">
+                {(((form.price - form.cost_price) / form.price) * 100).toFixed(1)}% margin
+              </span>
+            </div>
+          )}
 
           {formError && (
             <div className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-700">
