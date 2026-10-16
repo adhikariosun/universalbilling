@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Search,
   Receipt,
@@ -12,6 +12,8 @@ import {
   X,
   Printer,
   DollarSign,
+  Pencil,
+  AlertCircle as DueIcon,
 } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@/components/ui/Button';
@@ -21,7 +23,7 @@ import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Spinner, InlineSpinner } from '@/components/ui/Spinner';
 import { Modal } from '@/components/ui/Modal';
-import { fetchBills, searchBills, deleteBill, fetchBillById, recordPayment } from '@/lib/api';
+import { fetchBills, searchBills, deleteBill, fetchBillById, recordPayment, fetchDueBills } from '@/lib/api';
 import { useSettings } from '@/lib/settings';
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { Bill } from '@/lib/types';
@@ -29,6 +31,7 @@ import type { Bill } from '@/lib/types';
 const PAGE_SIZE = 10;
 
 export function BillsPage() {
+  const navigate = useNavigate();
   const { settings } = useSettings();
   const currency = settings?.currency ?? 'USD';
   const businessName = settings?.business_name ?? 'Universal Billing';
@@ -37,6 +40,7 @@ export function BillsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [searchMode, setSearchMode] = useState(false);
+  const [tab, setTab] = useState<'all' | 'due'>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Bill | null>(null);
@@ -51,7 +55,11 @@ export function BillsPage() {
     setLoading(true);
     setError(null);
     try {
-      if (searchMode && search.trim()) {
+      if (tab === 'due') {
+        const results = await fetchDueBills();
+        setBills(results);
+        setCount(results.length);
+      } else if (searchMode && search.trim()) {
         const results = await searchBills(search.trim());
         setBills(results);
         setCount(results.length);
@@ -66,7 +74,7 @@ export function BillsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, searchMode, search]);
+  }, [page, searchMode, search, tab]);
 
   useEffect(() => {
     loadBills();
@@ -210,14 +218,41 @@ export function BillsPage() {
           </Link>
         </div>
 
-        <div className="mb-4">
-          <Input
-            placeholder="Search by bill number or customer name..."
-            value={search}
-            onChange={(e) => handleSearch(e.target.value)}
-            icon={<Search size={18} />}
-          />
+        {/* Tab switcher */}
+        <div className="mb-4 flex gap-2">
+          <button
+            onClick={() => { setTab('all'); setPage(1); }}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              tab === 'all'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            All Bills
+          </button>
+          <button
+            onClick={() => { setTab('due'); setPage(1); }}
+            className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              tab === 'due'
+                ? 'bg-amber-500 text-white'
+                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            <DueIcon size={16} />
+            Due Bills
+          </button>
         </div>
+
+        {tab === 'all' && (
+          <div className="mb-4">
+            <Input
+              placeholder="Search by bill number or customer name..."
+              value={search}
+              onChange={(e) => handleSearch(e.target.value)}
+              icon={<Search size={18} />}
+            />
+          </div>
+        )}
 
         {error && (
           <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -232,8 +267,8 @@ export function BillsPage() {
           ) : bills.length === 0 ? (
             <EmptyState
               icon={<Receipt size={24} />}
-              title={search ? 'No bills found' : 'No bills yet'}
-              description={search ? 'Try a different search term' : 'Create your first bill to get started'}
+              title={tab === 'due' ? 'No due bills' : search ? 'No bills found' : 'No bills yet'}
+              description={tab === 'due' ? 'All bills are fully paid' : search ? 'Try a different search term' : 'Create your first bill to get started'}
               action={
                 !search && (
                   <Link to="/bills/create">
@@ -295,6 +330,13 @@ export function BillsPage() {
                               title="Print"
                             >
                               <Printer size={16} />
+                            </button>
+                            <button
+                              onClick={() => navigate(`/bills/${bill.id}/edit`)}
+                              className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-600"
+                              title="Edit"
+                            >
+                              <Pencil size={16} />
                             </button>
                             {Number(bill.due_amount) > 0 && (
                               <button
@@ -455,6 +497,11 @@ export function BillsPage() {
             )}
 
             <div className="mt-5 flex justify-end gap-2">
+              {Number(viewBill.due_amount) > 0 && (
+                <Button variant="outline" onClick={() => { setViewBill(null); navigate(`/bills/${viewBill.id}/edit`); }}>
+                  <Pencil size={16} /> Edit
+                </Button>
+              )}
               <Button variant="outline" onClick={() => printBill(viewBill)}>
                 <Printer size={16} /> Print
               </Button>

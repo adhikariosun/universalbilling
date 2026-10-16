@@ -8,6 +8,7 @@ import { BillsPage } from '@/pages/BillsPage';
 import { CustomersPage } from '@/pages/CustomersPage';
 import { ProductsPage } from '@/pages/ProductsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { EditBillPage } from '@/pages/EditBillPage';
 import { TaxExportPage } from '@/pages/TaxExportPage';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 
@@ -24,6 +25,7 @@ function ProtectedRoutes() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/bills" element={<BillsPage />} />
         <Route path="/bills/create" element={<CreateBillPage />} />
+        <Route path="/bills/:id/edit" element={<EditBillPage />} />
         <Route path="/customers" element={<CustomersPage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/settings" element={<SettingsPage />} />

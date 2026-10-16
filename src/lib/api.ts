@@ -127,6 +127,16 @@ export async function createBill(
   return newBill;
 }
 
+export async function fetchDueBills(): Promise<Bill[]> {
+  const { data, error } = await supabase
+    .from('bills')
+    .select('*, customer:customers(*)')
+    .gt('due_amount', 0)
+    .order('bill_date', { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function updateBill(
   id: string,
   updates: Partial<Bill>
@@ -139,6 +149,58 @@ export async function updateBill(
     .single();
   if (error) throw error;
   return data;
+}
+
+export async function updateBillWithItems(
+  id: string,
+  bill: {
+    customer_id: string | null;
+    subtotal: number;
+    tax_rate: number;
+    tax_amount: number;
+    discount: number;
+    total: number;
+    paid_amount: number;
+    due_amount: number;
+    notes: string | null;
+    status: string;
+    bill_date: string;
+  },
+  items: Array<{ product_name: string; quantity: number; price: number }>
+): Promise<Bill> {
+  const { data: updatedBill, error: updateError } = await supabase
+    .from('bills')
+    .update({
+      customer_id: bill.customer_id,
+      subtotal: bill.subtotal,
+      tax_rate: bill.tax_rate,
+      tax_amount: bill.tax_amount,
+      discount: bill.discount,
+      total: bill.total,
+      paid_amount: bill.paid_amount,
+      due_amount: bill.due_amount,
+      notes: bill.notes,
+      status: bill.status,
+      bill_date: bill.bill_date,
+    })
+    .eq('id', id)
+    .select()
+    .single();
+  if (updateError) throw updateError;
+
+  const { error: deleteItemsError } = await supabase
+    .from('bill_items')
+    .delete()
+    .eq('bill_id', id);
+  if (deleteItemsError) throw deleteItemsError;
+
+  if (items.length > 0) {
+    const itemsWithBillId = items.map((item) => ({ ...item, bill_id: id }));
+    const { error: itemsError } = await supabase.from('bill_items').insert(itemsWithBillId);
+    if (itemsError) throw itemsError;
+  }
+
+  return updatedBill;
 }
 
 export async function deleteBill(id: string): Promise<void> {
