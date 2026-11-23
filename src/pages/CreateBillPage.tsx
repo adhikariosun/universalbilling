@@ -16,6 +16,7 @@ interface LineItem {
   product_name: string;
   quantity: number;
   price: number;
+  cost_price: number;
 }
 
 let itemId = 0;
@@ -35,9 +36,8 @@ export function CreateBillPage() {
   const [customerSearch, setCustomerSearch] = useState('');
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [items, setItems] = useState<LineItem[]>([
-    { id: nextItemId(), product_name: '', quantity: 1, price: 0 },
+    { id: nextItemId(), product_name: '', quantity: 1, price: 0, cost_price: 0 },
   ]);
-  const [taxRate, setTaxRate] = useState(settings?.tax_rate ?? 0);
   const [discount, setDiscount] = useState(0);
   const [paidAmount, setPaidAmount] = useState<number | ''>('');
   const [notes, setNotes] = useState('');
@@ -65,11 +65,6 @@ export function CreateBillPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Update tax rate when settings load
-  useEffect(() => {
-    if (settings) setTaxRate(settings.tax_rate);
-  }, [settings]);
-
   const filteredCustomers = customerSearch
     ? customers.filter(
         (c) =>
@@ -84,8 +79,9 @@ export function CreateBillPage() {
       : products;
 
   const subtotal = items.reduce((sum, item) => sum + item.quantity * item.price, 0);
-  const taxAmount = (subtotal * taxRate) / 100;
-  const total = Math.max(0, subtotal + taxAmount - discount);
+  const totalCost = items.reduce((sum, item) => sum + item.quantity * item.cost_price, 0);
+  const total = Math.max(0, subtotal - discount);
+  const profit = total - totalCost - (discount * totalCost / Math.max(subtotal, 1));
   const paid = paidAmount === '' ? 0 : Math.min(paidAmount, total);
   const dueAmount = Math.max(0, total - paid);
 
@@ -112,7 +108,7 @@ export function CreateBillPage() {
     setItems((prev) =>
       prev.map((item) =>
         item.id === itemId
-          ? { ...item, product_name: product.name, price: product.price }
+          ? { ...item, product_name: product.name, price: product.price, cost_price: product.cost_price }
           : item
       )
     );
@@ -120,7 +116,7 @@ export function CreateBillPage() {
   };
 
   const addItem = () => {
-    setItems((prev) => [...prev, { id: nextItemId(), product_name: '', quantity: 1, price: 0 }]);
+    setItems((prev) => [...prev, { id: nextItemId(), product_name: '', quantity: 1, price: 0, cost_price: 0 }]);
   };
 
   const removeItem = (id: string) => {
@@ -176,10 +172,9 @@ export function CreateBillPage() {
         {
           customer_id: selectedCustomer?.id ?? null,
           subtotal,
-          tax_rate: taxRate,
-          tax_amount: taxAmount,
           discount,
           total,
+          cost_amount: totalCost,
           paid_amount: paid,
           due_amount: dueAmount,
           notes: notes.trim() || null,
@@ -190,6 +185,7 @@ export function CreateBillPage() {
           product_name: i.product_name.trim(),
           quantity: i.quantity,
           price: i.price,
+          cost_price: i.cost_price,
         }))
       );
       // Fetch the full bill with items for printing
@@ -259,7 +255,6 @@ export function CreateBillPage() {
           </table>
           <div class="totals">
             <div style="display: flex; justify-content: space-between; padding: 4px 0;"><span class="muted">Subtotal</span><span>${formatCurrency(bill.subtotal, currency)}</span></div>
-            <div style="display: flex; justify-content: space-between; padding: 4px 0;"><span class="muted">Tax (${bill.tax_rate}%)</span><span>${formatCurrency(bill.tax_amount, currency)}</span></div>
             <div style="display: flex; justify-content: space-between; padding: 4px 0;"><span class="muted">Discount</span><span>-${formatCurrency(bill.discount, currency)}</span></div>
             <div class="total-row" style="display: flex; justify-content: space-between; padding: 8px 0; border-top: 2px solid #e5e7eb; margin-top: 8px;"><span>Total</span><span>${formatCurrency(bill.total, currency)}</span></div>
           </div>
@@ -533,15 +528,8 @@ export function CreateBillPage() {
                   <option value="cancelled">Cancelled</option>
                 </select>
               </div>
-              <Input
-                label="Tax Rate (%)"
-                type="number"
-                min={0}
-                max={100}
-                step="0.01"
-                value={taxRate}
-                onChange={(e) => setTaxRate(Number(e.target.value))}
-              />
+            </div>
+            <div className="mt-4">
               <Input
                 label={`Discount (${currency})`}
                 type="number"
@@ -585,16 +573,22 @@ export function CreateBillPage() {
                 <span className="font-medium">{formatCurrency(subtotal, currency)}</span>
               </div>
               <div className="flex justify-between text-sm text-gray-600">
-                <span>Tax ({taxRate}%)</span>
-                <span className="font-medium">{formatCurrency(taxAmount, currency)}</span>
-              </div>
-              <div className="flex justify-between text-sm text-gray-600">
                 <span>Discount</span>
                 <span className="font-medium">-{formatCurrency(discount, currency)}</span>
               </div>
               <div className="mt-2 flex justify-between border-t border-gray-100 pt-3 text-lg font-bold text-gray-900">
                 <span>Total</span>
                 <span>{formatCurrency(total, currency)}</span>
+              </div>
+              <div className="mt-2 flex justify-between border-t border-gray-100 pt-2 text-sm">
+                <span className="text-gray-500">Total Cost</span>
+                <span className="font-medium text-gray-600">{formatCurrency(totalCost, currency)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="font-medium text-gray-700">Profit</span>
+                <span className={`font-bold ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(profit, currency)}
+                </span>
               </div>
               {paid > 0 && (
                 <>

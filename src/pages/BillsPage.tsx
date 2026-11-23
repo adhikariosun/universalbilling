@@ -172,7 +172,6 @@ export function BillsPage() {
           </table>
           <div class="totals">
             <div style="display: flex; justify-content: space-between; padding: 4px 0;"><span class="muted">Subtotal</span><span>${formatCurrency(bill.subtotal, currency)}</span></div>
-            <div style="display: flex; justify-content: space-between; padding: 4px 0;"><span class="muted">Tax (${bill.tax_rate}%)</span><span>${formatCurrency(bill.tax_amount, currency)}</span></div>
             <div style="display: flex; justify-content: space-between; padding: 4px 0;"><span class="muted">Discount</span><span>-${formatCurrency(bill.discount, currency)}</span></div>
             <div class="total-row" style="display: flex; justify-content: space-between; padding: 8px 0; border-top: 2px solid #e5e7eb; margin-top: 8px;"><span>Total</span><span>${formatCurrency(bill.total, currency)}</span></div>
           </div>
@@ -469,9 +468,6 @@ export function BillsPage() {
             <div className="mt-4 space-y-1.5 text-sm">
               <div className="flex justify-between text-gray-600">
                 <span>Subtotal</span><span>{formatCurrency(viewBill.subtotal, currency)}</span>
-              </div>
-              <div className="flex justify-between text-gray-600">
-                <span>Tax ({viewBill.tax_rate}%)</span><span>{formatCurrency(viewBill.tax_amount, currency)}</span>
               </div>
               <div className="flex justify-between text-gray-600">
                 <span>Discount</span><span>-{formatCurrency(viewBill.discount, currency)}</span>

@@ -5,7 +5,7 @@ import { fetchSettings, upsertSettings } from '@/lib/api';
 interface SettingsContextValue {
   settings: Settings | null;
   loading: boolean;
-  saveSettings: (s: Pick<Settings, 'business_name' | 'currency' | 'tax_rate'>) => Promise<void>;
+  saveSettings: (s: Pick<Settings, 'business_name' | 'currency'>) => Promise<void>;
   refresh: () => void;
 }
 
@@ -30,7 +30,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     load();
   }, [load]);
 
-  const saveSettings = async (s: Pick<Settings, 'business_name' | 'currency' | 'tax_rate'>) => {
+  const saveSettings = async (s: Pick<Settings, 'business_name' | 'currency'>) => {
     const updated = await upsertSettings(s);
     setSettings(updated);
   };

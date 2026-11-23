@@ -93,17 +93,16 @@ export async function createBill(
   bill: {
     customer_id: string | null;
     subtotal: number;
-    tax_rate: number;
-    tax_amount: number;
     discount: number;
     total: number;
+    cost_amount: number;
     paid_amount: number;
     due_amount: number;
     notes: string | null;
     status: string;
     bill_date: string;
   },
-  items: Array<{ product_name: string; quantity: number; price: number }>
+  items: Array<{ product_name: string; quantity: number; price: number; cost_price: number }>
 ): Promise<Bill> {
   const { count: existingCount } = await supabase
     .from('bills')
@@ -113,7 +112,7 @@ export async function createBill(
 
   const { data: newBill, error: insertError } = await supabase
     .from('bills')
-    .insert({ ...bill, bill_number: billNumber })
+    .insert({ ...bill, bill_number: billNumber, tax_rate: 0, tax_amount: 0 })
     .select()
     .single();
   if (insertError) throw insertError;
@@ -156,27 +155,27 @@ export async function updateBillWithItems(
   bill: {
     customer_id: string | null;
     subtotal: number;
-    tax_rate: number;
-    tax_amount: number;
     discount: number;
     total: number;
+    cost_amount: number;
     paid_amount: number;
     due_amount: number;
     notes: string | null;
     status: string;
     bill_date: string;
   },
-  items: Array<{ product_name: string; quantity: number; price: number }>
+  items: Array<{ product_name: string; quantity: number; price: number; cost_price: number }>
 ): Promise<Bill> {
   const { data: updatedBill, error: updateError } = await supabase
     .from('bills')
     .update({
       customer_id: bill.customer_id,
       subtotal: bill.subtotal,
-      tax_rate: bill.tax_rate,
-      tax_amount: bill.tax_amount,
+      tax_rate: 0,
+      tax_amount: 0,
       discount: bill.discount,
       total: bill.total,
+      cost_amount: bill.cost_amount,
       paid_amount: bill.paid_amount,
       due_amount: bill.due_amount,
       notes: bill.notes,
@@ -357,7 +356,7 @@ export async function fetchSettings(): Promise<Settings | null> {
 }
 
 export async function upsertSettings(
-  settings: Pick<Settings, 'business_name' | 'currency' | 'tax_rate'>
+  settings: Pick<Settings, 'business_name' | 'currency'>
 ): Promise<Settings> {
   const { data: existing } = await supabase.from('settings').select('id').maybeSingle();
 

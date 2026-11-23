@@ -9,7 +9,7 @@ const navItems = [
   { to: '/bills', label: 'Bills', icon: FileText },
   { to: '/customers', label: 'Customers', icon: Users },
   { to: '/products', label: 'Products', icon: Package },
-  { to: '/tax-export', label: 'Tax Export', icon: FileSpreadsheet },
+  { to: '/sales-report', label: 'Sales Report', icon: FileSpreadsheet },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
 

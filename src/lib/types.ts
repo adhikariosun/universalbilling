@@ -18,6 +18,7 @@ export interface Bill {
   tax_rate: number;
   tax_amount: number;
   discount: number;
+  cost_amount: number;
   total: number;
   paid_amount: number;
   due_amount: number;
@@ -35,6 +36,7 @@ export interface BillItem {
   product_name: string;
   quantity: number;
   price: number;
+  cost_price: number;
   total: number;
 }
 
@@ -66,7 +68,6 @@ export interface Settings {
   user_id: string;
   business_name: string;
   currency: string;
-  tax_rate: number;
   updated_at: string;
 }
 

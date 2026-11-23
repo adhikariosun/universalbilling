@@ -9,7 +9,7 @@ import { CustomersPage } from '@/pages/CustomersPage';
 import { ProductsPage } from '@/pages/ProductsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { EditBillPage } from '@/pages/EditBillPage';
-import { TaxExportPage } from '@/pages/TaxExportPage';
+import { SalesReportPage } from '@/pages/SalesReportPage';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 
 function ProtectedRoutes() {
@@ -29,7 +29,7 @@ function ProtectedRoutes() {
         <Route path="/customers" element={<CustomersPage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/tax-export" element={<TaxExportPage />} />
+        <Route path="/sales-report" element={<SalesReportPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </SettingsProvider>

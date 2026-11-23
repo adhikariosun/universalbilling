@@ -20,6 +20,7 @@ interface LineItem {
   product_name: string;
   quantity: number;
   price: number;
+  cost_price: number;
 }
 
 let editItemId = 0;
@@ -40,7 +41,6 @@ export function EditBillPage() {
   const [customerSearch, setCustomerSearch] = useState('');
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [items, setItems] = useState<LineItem[]>([]);
-  const [taxRate, setTaxRate] = useState(0);
   const [discount, setDiscount] = useState(0);
   const [paidAmount, setPaidAmount] = useState<number | ''>('');
   const [notes, setNotes] = useState('');
@@ -61,7 +61,6 @@ export function EditBillPage() {
         }
         setCustomers(customerData);
         setProducts(productData);
-        setTaxRate(bill.tax_rate);
         setDiscount(bill.discount);
         setPaidAmount(bill.paid_amount);
         setNotes(bill.notes ?? '');
@@ -77,6 +76,7 @@ export function EditBillPage() {
             product_name: item.product_name,
             quantity: item.quantity,
             price: item.price,
+            cost_price: item.cost_price ?? 0,
           }))
         );
       })
@@ -101,8 +101,9 @@ export function EditBillPage() {
       : products;
 
   const subtotal = items.reduce((sum, item) => sum + item.quantity * item.price, 0);
-  const taxAmount = (subtotal * taxRate) / 100;
-  const total = Math.max(0, subtotal + taxAmount - discount);
+  const totalCost = items.reduce((sum, item) => sum + item.quantity * item.cost_price, 0);
+  const total = Math.max(0, subtotal - discount);
+  const profit = total - totalCost - (discount * totalCost / Math.max(subtotal, 1));
   const paid = paidAmount === '' ? 0 : Math.min(paidAmount, total);
   const dueAmount = Math.max(0, total - paid);
 
@@ -120,7 +121,7 @@ export function EditBillPage() {
     setItems((prev) =>
       prev.map((item) =>
         item.id === itemId
-          ? { ...item, product_name: product.name, price: product.price }
+          ? { ...item, product_name: product.name, price: product.price, cost_price: product.cost_price }
           : item
       )
     );
@@ -128,7 +129,7 @@ export function EditBillPage() {
   };
 
   const addItem = () => {
-    setItems((prev) => [...prev, { id: nextEditItemId(), product_name: '', quantity: 1, price: 0 }]);
+    setItems((prev) => [...prev, { id: nextEditItemId(), product_name: '', quantity: 1, price: 0, cost_price: 0 }]);
   };
 
   const removeItem = (itemId: string) => {
@@ -166,10 +167,9 @@ export function EditBillPage() {
         {
           customer_id: selectedCustomer?.id ?? null,
           subtotal,
-          tax_rate: taxRate,
-          tax_amount: taxAmount,
           discount,
           total,
+          cost_amount: totalCost,
           paid_amount: paid,
           due_amount: dueAmount,
           notes: notes.trim() || null,
@@ -180,6 +180,7 @@ export function EditBillPage() {
           product_name: i.product_name.trim(),
           quantity: i.quantity,
           price: i.price,
+          cost_price: i.cost_price,
         }))
       );
       navigate('/bills');
@@ -401,15 +402,8 @@ export function EditBillPage() {
                   <option value="cancelled">Cancelled</option>
                 </select>
               </div>
-              <Input
-                label="Tax Rate (%)"
-                type="number"
-                min={0}
-                max={100}
-                step="0.01"
-                value={taxRate}
-                onChange={(e) => setTaxRate(Number(e.target.value))}
-              />
+            </div>
+            <div className="mt-4">
               <Input
                 label={`Discount (${currency})`}
                 type="number"
@@ -453,16 +447,22 @@ export function EditBillPage() {
                 <span className="font-medium">{formatCurrency(subtotal, currency)}</span>
               </div>
               <div className="flex justify-between text-sm text-gray-600">
-                <span>Tax ({taxRate}%)</span>
-                <span className="font-medium">{formatCurrency(taxAmount, currency)}</span>
-              </div>
-              <div className="flex justify-between text-sm text-gray-600">
                 <span>Discount</span>
                 <span className="font-medium">-{formatCurrency(discount, currency)}</span>
               </div>
               <div className="mt-2 flex justify-between border-t border-gray-100 pt-3 text-lg font-bold text-gray-900">
                 <span>Total</span>
                 <span>{formatCurrency(total, currency)}</span>
+              </div>
+              <div className="mt-2 flex justify-between border-t border-gray-100 pt-2 text-sm">
+                <span className="text-gray-500">Total Cost</span>
+                <span className="font-medium text-gray-600">{formatCurrency(totalCost, currency)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="font-medium text-gray-700">Profit</span>
+                <span className={`font-bold ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(profit, currency)}
+                </span>
               </div>
               {paid > 0 && (
                 <>

@@ -27,7 +27,6 @@ export function SettingsPage() {
   const { settings, loading, saveSettings, refresh } = useSettings();
   const [businessName, setBusinessName] = useState('Universal Billing');
   const [currency, setCurrency] = useState('USD');
-  const [taxRate, setTaxRate] = useState(0);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +35,6 @@ export function SettingsPage() {
     if (settings) {
       setBusinessName(settings.business_name);
       setCurrency(settings.currency);
-      setTaxRate(settings.tax_rate);
     }
   }, [settings]);
 
@@ -49,7 +47,6 @@ export function SettingsPage() {
       await saveSettings({
         business_name: businessName.trim() || 'Universal Billing',
         currency,
-        tax_rate: taxRate,
       });
       setSuccess(true);
       refresh();
@@ -111,7 +108,7 @@ export function SettingsPage() {
           </Card>
 
           <Card className="p-5">
-            <h2 className="mb-4 text-base font-semibold text-gray-900">Currency & Tax</h2>
+            <h2 className="mb-4 text-base font-semibold text-gray-900">Currency</h2>
             <div className="space-y-4">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-700">Currency</label>
@@ -130,18 +127,6 @@ export function SettingsPage() {
                   All amounts across the app will use this currency
                 </p>
               </div>
-              <Input
-                label="Default Tax Rate (%)"
-                type="number"
-                min={0}
-                max={100}
-                step="0.01"
-                value={taxRate}
-                onChange={(e) => setTaxRate(Number(e.target.value))}
-              />
-              <p className="text-xs text-gray-400">
-                This tax rate will be pre-filled when creating new bills
-              </p>
             </div>
           </Card>
 
